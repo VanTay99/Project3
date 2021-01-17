@@ -14,105 +14,81 @@ iris_y = df["Species"]
 print('Number of classes: %d' %len(np.unique(iris_y)))
 print('Number of data points: %d' %len(iris_y))
 
-# print(iris_X,iris_y)
-# X0 = iris_X[iris_y == 0,:]
-# print ('\nSamples from class 0:\n', X0[:5,:])
-
-# X1 = iris_X[iris_y == 1,:]
-# print ('\nSamples from class 1:\n', X1[:5,:])
-
-# X2 = iris_X[iris_y == 2,:]
-# print ('\nSamples from class 2:\n', X2[:5,:])
-
-
 from sklearn.model_selection import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(iris_X, iris_y, test_size=0.3,random_state=25,stratify=iris_y)
+X_train, X_test, y_train, y_test = train_test_split(iris_X, iris_y, test_size=0.2,random_state=41)
+# ,stratify=iris_y)  
+#  120 / 30
 
-clf = neighbors.KNeighborsClassifier(n_neighbors = 4, p = 2)
-# clf = neighbors.KNeighborsClassifier(n_neighbors = 5, p = 2,weights='distance')
+clf = neighbors.KNeighborsClassifier(n_neighbors = 1)
 
 clf.fit(X_train, y_train)
 y_pred = clf.predict(X_test)
 
-# print('aa',clf.kneighbors([X_test[0]]))
-# from sklearn.neighbors import NearestNeighbors
-# neigh = NearestNeighbors(n_neighbors=10)
-# # X = np.array([1,2,3,4,5,6,7,8,9,10,11,12,13]).reshape(-1,1)
-# # print(X)
-# neigh.fit(X_train)
-# # neigh.fit(X)
-# print(neigh.kneighbors([X_test[0]]))
+distance, nn = clf.kneighbors(X_test.iloc[15].to_numpy().reshape(1,-1),5)
+# 119 ,113,83
+print("Wrong predict",iris_y[119],iris_y[113],iris_y[83])
+print("Nearest neighbors\n",distance,'\n',nn,'\n',y_train.iloc[nn[0]])
+print("\nPrint results for test data points:")
+print("\nPredicted labels:\n ", y_pred[0:5])
+print("\nTrue labels     :\n ", y_test[0:5])
 
+from sklearn.metrics import classification_report, confusion_matrix,precision_score,recall_score,f1_score
 
-from sklearn.model_selection import cross_val_score
+print("\nPrecision score:",precision_score(y_test, y_pred,average='macro'))
+print('recall:',recall_score(y_test, y_pred,average='macro'))
+print('f1-score:',f1_score(y_test, y_pred,average='macro'))
 
-scores = cross_val_score(clf, X_train, y_train, cv=5)
-print(scores,sum(scores)/5)
-print("Print results for test data points:")
-print("Predicted labels: ", y_pred)
-print("True labels     : ", y_test)
-from sklearn.metrics import accuracy_score
-print("Accuracy:", accuracy_score(y_test, y_pred))
-
-from sklearn.metrics import classification_report, confusion_matrix,precision_score,recall_score
-
-print("Pricesion score:",precision_score(y_test, y_pred,average='macro'))
 labels=['setosa', 'versicolor' ,'virginica']
 print("\nconfusion_matrix:\n",pd.DataFrame(confusion_matrix(y_test, y_pred,labels=labels), index=labels, columns=labels))
 print("\nclassification_report:\n",classification_report(y_test, y_pred))
 
-from sklearn.model_selection import GridSearchCV
-k_range = list(range(1, 50))  
-weight_options = ['uniform', 'distance']
-param_grid = dict(n_neighbors=k_range, weights=weight_options)
-knn = neighbors.KNeighborsClassifier()
-knn_cv= GridSearchCV(knn,param_grid,cv=5)
-knn_cv.fit(X_train,y_train)
-
-print(knn_cv.best_params_,knn_cv.best_score_)
 
 from sklearn import metrics
-k_range = list(range(1, 30))  
-# weight_options = ['uniform', 'distance']
+k_range = list(range(1, 26))  
 scores={}
 list_score_uniform=[]
 for k in k_range:
-  # for weight in weight_options:
     knn = neighbors.KNeighborsClassifier(n_neighbors=k,weights='uniform')
-    # ,weights=weight)
     knn.fit(X_train,y_train)
     y_pred = knn.predict(X_test)
-    # scores[k] = metrics.accuracy_score(y_test,y_pred)
-    scores = cross_val_score(knn, X_train, y_train, cv=5)
-    # scores = precision_score(y_test, y_pred,average='macro')
-    # precision_score(y_test, y_pred)
-    # print(scores,sum(scores)/5)
-    # list_score_uniform.append(scores)
-    list_score_uniform.append(sum(scores)/5)
-    # list_score_uniform.append(metrics.accuracy_score(y_test,y_pred)) 
+    precision = precision_score(y_test, y_pred,average='macro')
+    recall = recall_score(y_test, y_pred,average='macro')
+    f1 = f1_score(y_test, y_pred,average='macro')
+    scores[k] = {
+      'precision':round(precision,5),
+      'recall':round(recall,5),
+      'f1':round(f1,5)
+    }
+    list_score_uniform.append(f1)
+
+print('scores uniform:\n')
+print("{:<8} {:<15} {:<8} {:<8}".format('Key','Precision','Recall','f1'))
+for k, v in scores.items():
+  print("{:<8} {:<15} {:<8} {:<8}".format(k,v['precision'],v['recall'],v['f1']))
 
 from sklearn import metrics
-k_range = list(range(1, 30))  
-# weight_options = ['uniform', 'distance']
+k_range = list(range(1, 26))  
 scores={}
 list_score_distance=[]
 for k in k_range:
-  # for weight in weight_options:
     knn = neighbors.KNeighborsClassifier(n_neighbors=k,weights='distance')
     knn.fit(X_train,y_train)
     y_pred = knn.predict(X_test)
-    scores = cross_val_score(knn, X_train, y_train, cv=5)
-    # print(scores,sum(scores)/5)
-    # scores = precision_score(y_test, y_pred,average='macro')
-    # precision_score(y_test, y_pred)
-    # list_score_distance.append(scores)
-    list_score_distance.append(sum(scores)/5)
-    # y_pred = knn.predict(X_test)
-    # scores[k] = metrics.accuracy_score(y_test,y_pred)
-    # list_score_distance.append(metrics.accuracy_score(y_test,y_pred)) 
+    precision = precision_score(y_test, y_pred,average='macro')
+    recall = recall_score(y_test, y_pred,average='macro')
+    f1 = f1_score(y_test, y_pred,average='macro')
+    scores[k] = {
+      'precision':round(precision,5),
+      'recall':round(recall,5),
+      'f1':round(f1,5)
+    }
+    list_score_distance.append(f1)
 
-# print(list_score)
-# # print(scores)
+print('scores distance:\n')
+print("{:<8} {:<15} {:<8} {:<8}".format('Key','Precision','Recall','f1'))
+for k, v in scores.items():
+  print("{:<8} {:<15} {:<8} {:<8}".format(k,v['precision'],v['recall'],v['f1']))
+
 fig = plt.figure() 
 fig, (ax1, ax2) = plt.subplots(2)
 ax1.plot(k_range,list_score_uniform)
@@ -124,4 +100,4 @@ ax2.plot(k_range,list_score_distance)
 ax2.set_xlabel("Value K for KNN")
 ax2.set_ylabel("Testing Precision")
 ax2.set_title("Weight: Distance",loc='right')
-plt.show()
+# plt.show()
